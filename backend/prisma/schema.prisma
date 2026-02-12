@@ -1,0 +1,325 @@
+// Prisma Schema for SmartShift
+// Database: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER MANAGEMENT
+// ============================================
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  STAFF
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  phone     String
+  role      UserRole @default(STAFF)
+  active    Boolean  @default(true)
+  
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  
+  // Staff-specific fields
+  seniority     Int?      // Higher = more senior
+  hireDate      DateTime?
+  
+  // Relationships
+  shifts            Shift[]          @relation("AssignedStaff")
+  sickcalls         SickCall[]
+  notifications     Notification[]
+  shiftResponses    ShiftResponse[]
+  auditLogs         AuditLog[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([organizationId])
+  @@index([email])
+  @@index([role])
+}
+
+// ============================================
+// ORGANIZATION & LOCATIONS
+// ============================================
+
+model Organization {
+  id          String   @id @default(uuid())
+  name        String
+  active      Boolean  @default(true)
+  
+  // Configuration
+  rules       Json?    // Auto-matching rules configuration
+  settings    Json?    // General settings
+  
+  // Relationships
+  users       User[]
+  locations   Location[]
+  shifts      Shift[]
+  sickCalls   SickCall[]
+  auditLogs   AuditLog[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Location {
+  id             String       @id @default(uuid())
+  name           String
+  address        String?
+  active         Boolean      @default(true)
+  
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  
+  // Relationships
+  shifts         Shift[]
+  sickCalls      SickCall[]
+  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  
+  @@index([organizationId])
+}
+
+// ============================================
+// SCHEDULING
+// ============================================
+
+enum ShiftStatus {
+  SCHEDULED
+  SICK_CALL
+  COVERED
+  UNFILLED
+  CANCELLED
+}
+
+model Shift {
+  id             String      @id @default(uuid())
+  
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  
+  locationId     String
+  location       Location    @relation(fields: [locationId], references: [id])
+  
+  // Assigned staff
+  assignedToId   String?
+  assignedTo     User?       @relation("AssignedStaff", fields: [assignedToId], references: [id])
+  
+  // Shift details
+  date           DateTime
+  startTime      DateTime
+  endTime        DateTime
+  role           String?     // e.g., "Caregiver", "Night Supervisor"
+  status         ShiftStatus @default(SCHEDULED)
+  
+  // Relationships
+  sickCall       SickCall?
+  responses      ShiftResponse[]
+  
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  
+  @@index([organizationId])
+  @@index([locationId])
+  @@index([assignedToId])
+  @@index([date])
+  @@index([status])
+}
+
+// ============================================
+// SICK CALL MANAGEMENT
+// ============================================
+
+enum SickCallStatus {
+  PENDING
+  NOTIFYING
+  COVERED
+  UNFILLED
+  CANCELLED
+}
+
+model SickCall {
+  id             String         @id @default(uuid())
+  
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  
+  locationId     String
+  location       Location       @relation(fields: [locationId], references: [id])
+  
+  // Who called in sick
+  staffId        String
+  staff          User           @relation(fields: [staffId], references: [id])
+  
+  // Which shift(s)
+  shiftId        String         @unique
+  shift          Shift          @relation(fields: [shiftId], references: [id])
+  
+  // Additional consecutive shifts (for multi-day sick calls)
+  consecutiveDates DateTime[]
+  
+  // Details
+  reason         String?
+  status         SickCallStatus @default(PENDING)
+  
+  // Coverage tracking
+  coveredById    String?
+  coveredAt      DateTime?
+  
+  // Relationships
+  notifications  Notification[]
+  responses      ShiftResponse[]
+  auditLogs      AuditLog[]
+  
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  
+  @@index([organizationId])
+  @@index([staffId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ============================================
+// NOTIFICATIONS & RESPONSES
+// ============================================
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  RESPONDED
+}
+
+enum NotificationType {
+  SMS
+  EMAIL
+  IN_APP
+}
+
+model Notification {
+  id             String             @id @default(uuid())
+  
+  sickCallId     String
+  sickCall       SickCall           @relation(fields: [sickCallId], references: [id])
+  
+  recipientId    String
+  recipient      User               @relation(fields: [recipientId], references: [id])
+  
+  type           NotificationType   @default(SMS)
+  status         NotificationStatus @default(PENDING)
+  
+  // Content
+  message        String
+  
+  // Delivery tracking
+  sentAt         DateTime?
+  deliveredAt    DateTime?
+  respondedAt    DateTime?
+  
+  // External IDs (Twilio, SendGrid, etc.)
+  externalId     String?
+  
+  // Response tracking
+  response       ShiftResponse?
+  
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  
+  @@index([sickCallId])
+  @@index([recipientId])
+  @@index([status])
+}
+
+enum ResponseType {
+  ACCEPT
+  DECLINE
+  NO_RESPONSE
+}
+
+model ShiftResponse {
+  id             String       @id @default(uuid())
+  
+  sickCallId     String
+  sickCall       SickCall     @relation(fields: [sickCallId], references: [id])
+  
+  shiftId        String
+  shift          Shift        @relation(fields: [shiftId], references: [id])
+  
+  staffId        String
+  staff          User         @relation(fields: [staffId], references: [id])
+  
+  notificationId String?      @unique
+  notification   Notification? @relation(fields: [notificationId], references: [id])
+  
+  responseType   ResponseType
+  responseText   String?      // The actual SMS response
+  
+  // Ranking info
+  rankPosition   Int?         // What position were they in the queue?
+  
+  createdAt      DateTime     @default(now())
+  
+  @@index([sickCallId])
+  @@index([staffId])
+  @@index([shiftId])
+}
+
+// ============================================
+// AUDIT & COMPLIANCE
+// ============================================
+
+enum AuditAction {
+  SICK_CALL_SUBMITTED
+  NOTIFICATION_SENT
+  SHIFT_ACCEPTED
+  SHIFT_DECLINED
+  MANUAL_ASSIGNMENT
+  OVERRIDE
+  SHIFT_CANCELLED
+  USER_CREATED
+  USER_UPDATED
+  RULE_CHANGED
+}
+
+model AuditLog {
+  id             String       @id @default(uuid())
+  
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  
+  userId         String?
+  user           User?        @relation(fields: [userId], references: [id])
+  
+  sickCallId     String?
+  sickCall       SickCall?    @relation(fields: [sickCallId], references: [id])
+  
+  action         AuditAction
+  details        Json?        // Additional context
+  ipAddress      String?
+  userAgent      String?
+  
+  createdAt      DateTime     @default(now())
+  
+  @@index([organizationId])
+  @@index([userId])
+  @@index([sickCallId])
+  @@index([action])
+  @@index([createdAt])
+}
