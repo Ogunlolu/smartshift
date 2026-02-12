@@ -122,7 +122,7 @@ export default function StaffDashboard() {
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-primary-700">Location</p>
-                  <p className="font-medium text-primary-900">{nextShift.location?.name || 'N/A'}</p>
+                  <p className="font-medium text-primary-900">{(nextShift as any).location?.name || 'N/A'}</p>
                 </div>
               </div>
             </div>
@@ -179,10 +179,10 @@ export default function StaffDashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-gray-900">
-                      {format(new Date(sickCall.shift?.date || ''), 'MMM d, yyyy')}
+                      {format(new Date((sickCall as any).shift?.date || ''), 'MMM d, yyyy')}
                     </p>
                     <p className="text-sm text-gray-600">
-                      {sickCall.shift?.location?.name}
+                      {(sickCall as any).shift?.location?.name}
                     </p>
                   </div>
                   <span className={`badge badge-${sickCall.status.toLowerCase()}`}>
