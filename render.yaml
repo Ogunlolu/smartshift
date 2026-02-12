@@ -1,0 +1,30 @@
+databases:
+  - name: smartshift-db
+    plan: free
+    databaseName: smartshift
+    user: smartshift
+
+services:
+  - type: web
+    name: smartshift-backend
+    plan: free
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: DATABASE_URL
+        fromDatabase:
+          name: smartshift-db
+          property: connectionString
+      - key: FRONTEND_URL
+        value: https://smartshift-frontend.vercel.app
+      - key: PORT
+        value: 10000
