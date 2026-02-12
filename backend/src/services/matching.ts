@@ -1,5 +1,5 @@
 import { prisma } from '../index';
-import { MatchedCandidate } from '../../shared/types';
+import { MatchedCandidate } from '../shared-types';
 import { startOfWeek, endOfWeek, parseISO, differenceInHours } from 'date-fns';
 
 interface MatchingRules {

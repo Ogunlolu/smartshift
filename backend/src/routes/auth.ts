@@ -2,7 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../index';
 import { generateToken } from '../middleware/auth';
-import { LoginRequest } from '../../shared/types';
+interface LoginRequest { email: string; password: string; }
 
 const router = express.Router();
 

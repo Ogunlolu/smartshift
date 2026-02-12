@@ -220,7 +220,7 @@ router.post('/:id/respond', async (req: AuthRequest, res) => {
     });
     
     // If accepted and shift not yet covered, assign it
-    if (responseType === 'ACCEPT' && sickCall.status !== 'COVERED') {
+    if (responseType === 'ACCEPT' && (sickCall.status as string) !== 'COVERED') {
       await assignShift(sickCallId, staffId);
     }
     
