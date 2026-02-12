@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { format } from 'date-fns';
-import type { DashboardStats, MatchedCandidate } from '@shared/types';
+import type { DashboardStats, MatchedCandidate } from '../shared-types';
 
 interface ActiveSickCall {
   id: string;
@@ -262,7 +262,7 @@ export default function ManagerDashboard() {
                   </div>
 
                   <div className="flex flex-wrap gap-1.5 mt-2">
-                    {candidate.reasons.map((reason, idx) => (
+                    {candidate.reasons.map((reason: string, idx: number) => (
                       <span key={idx} className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded">
                         {reason}
                       </span>

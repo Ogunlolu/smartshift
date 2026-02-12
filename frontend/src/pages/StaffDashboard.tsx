@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { format } from 'date-fns';
-import type { Shift, SickCall } from '@shared/types';
+import type { Shift, SickCall } from '../shared-types';
 
 export default function StaffDashboard() {
   const [nextShift, setNextShift] = useState<Shift | null>(null);

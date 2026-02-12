@@ -1,13 +1,12 @@
 import type {
   User,
-  AuthUser,
   LoginRequest,
   LoginResponse,
   SickCall,
   Shift,
   MatchedCandidate,
   DashboardStats,
-} from '@shared/types';
+} from '../shared-types';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
@@ -32,9 +31,9 @@ class APIClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...(options.headers as Record<string, string>),
     };
 
     if (this.token) {
