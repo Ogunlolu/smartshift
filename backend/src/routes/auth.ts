@@ -1,6 +1,6 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
-import { prisma } from '../index';
+import { prisma } from '../lib/prisma';
 import { generateToken } from '../middleware/auth';
 interface LoginRequest { email: string; password: string; }
 

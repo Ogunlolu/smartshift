@@ -4,6 +4,8 @@ import LoginPage from '@/pages/LoginPage';
 import StaffDashboard from '@/pages/StaffDashboard';
 import ManagerDashboard from '@/pages/ManagerDashboard';
 import Layout from '@/components/Layout';
+import SchedulePage from '@/pages/SchedulePage';
+import ShiftTemplateSettings from '@/pages/ShiftTemplateSettings';
 
 function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: string }) {
   const { isAuthenticated, user, loading } = useAuth();
@@ -77,6 +79,28 @@ function AppRoutes() {
         }
       />
       
+      <Route
+        path="/schedule"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <SchedulePage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/settings/shifts"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <ShiftTemplateSettings />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

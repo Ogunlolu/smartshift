@@ -1,4 +1,4 @@
-import { prisma } from '../index';
+import { prisma } from '../lib/prisma';
 import { MatchedCandidate } from '../shared-types';
 import { startOfWeek, endOfWeek, parseISO, differenceInHours } from 'date-fns';
 

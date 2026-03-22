@@ -43,6 +43,9 @@ model User {
   notifications     Notification[]
   shiftResponses    ShiftResponse[]
   auditLogs         AuditLog[]
+  scheduleAssignments ScheduleAssignment[]
+  weeklyDefaults      WeeklyDefault[]
+  createdAssignments  ScheduleAssignment[] @relation("AssignmentCreator")
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -71,6 +74,10 @@ model Organization {
   shifts      Shift[]
   sickCalls   SickCall[]
   auditLogs   AuditLog[]
+  shiftTemplates      ShiftTemplate[]
+  scheduleAssignments ScheduleAssignment[]
+  weeklyDefaults      WeeklyDefault[]
+  scheduleAuditLogs   ScheduleAuditLog[]
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -88,15 +95,124 @@ model Location {
   // Relationships
   shifts         Shift[]
   sickCalls      SickCall[]
-  
+  shiftTemplates      ShiftTemplate[]
+  scheduleAssignments ScheduleAssignment[]
+  weeklyDefaults      WeeklyDefault[]
+
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
-  
+
   @@index([organizationId])
 }
 
 // ============================================
-// SCHEDULING
+// SCHEDULE MANAGEMENT
+// ============================================
+
+model ShiftTemplate {
+  id              String   @id @default(uuid())
+  organizationId  String
+  locationId      String
+  name            String          // e.g., "Day Shift", "Overnight", "Evening"
+  startTime       String          // "07:00" (24h format, location-local)
+  endTime         String          // "15:00"
+  color           String?         // Hex color for UI display
+  requiredStaff   Int      @default(1)
+  isActive        Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  location        Location     @relation(fields: [locationId], references: [id])
+  assignments     ScheduleAssignment[]
+  weeklyDefaults  WeeklyDefault[]
+
+  @@unique([organizationId, locationId, name])
+  @@index([organizationId, locationId])
+}
+
+enum AssignmentStatus {
+  SCHEDULED
+  SICK_CALL
+  COVERED
+  CANCELLED
+  NO_SHOW
+}
+
+model ScheduleAssignment {
+  id              String   @id @default(uuid())
+  organizationId  String
+  locationId      String
+  shiftTemplateId String
+  staffId         String
+  date            DateTime @db.Date
+  status          AssignmentStatus @default(SCHEDULED)
+  notes           String?
+  createdBy       String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+  location        Location      @relation(fields: [locationId], references: [id])
+  shiftTemplate   ShiftTemplate @relation(fields: [shiftTemplateId], references: [id])
+  staff           User          @relation(fields: [staffId], references: [id])
+  createdByUser   User          @relation("AssignmentCreator", fields: [createdBy], references: [id])
+  sickCall        SickCall?     @relation("AffectedAssignment")
+
+  @@unique([locationId, shiftTemplateId, staffId, date])
+  @@index([organizationId, locationId, date])
+  @@index([staffId, date])
+  @@index([date, status])
+}
+
+model WeeklyDefault {
+  id              String   @id @default(uuid())
+  organizationId  String
+  locationId      String
+  shiftTemplateId String
+  staffId         String
+  dayOfWeek       Int             // 0 = Sunday, 6 = Saturday
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+  location        Location      @relation(fields: [locationId], references: [id])
+  shiftTemplate   ShiftTemplate @relation(fields: [shiftTemplateId], references: [id])
+  staff           User          @relation(fields: [staffId], references: [id])
+
+  @@unique([locationId, shiftTemplateId, staffId, dayOfWeek])
+  @@index([organizationId, locationId])
+}
+
+enum ScheduleAction {
+  ASSIGNMENT_CREATED
+  ASSIGNMENT_UPDATED
+  ASSIGNMENT_DELETED
+  WEEKLY_DEFAULT_SET
+  WEEKLY_DEFAULT_REMOVED
+  SCHEDULE_PUBLISHED
+  SICK_CALL_LINKED
+  COVERAGE_CONFIRMED
+}
+
+model ScheduleAuditLog {
+  id              String   @id @default(uuid())
+  organizationId  String
+  assignmentId    String?
+  action          ScheduleAction
+  performedBy     String
+  details         Json
+  createdAt       DateTime @default(now())
+
+  organization    Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId, createdAt])
+  @@index([assignmentId])
+}
+
+// ============================================
+// SCHEDULING (Legacy)
 // ============================================
 
 enum ShiftStatus {
@@ -177,6 +293,10 @@ model SickCall {
   reason         String?
   status         SickCallStatus @default(PENDING)
   
+  // Schedule integration
+  assignmentId   String?  @unique
+  assignment     ScheduleAssignment? @relation("AffectedAssignment", fields: [assignmentId], references: [id])
+
   // Coverage tracking
   coveredById    String?
   coveredAt      DateTime?
