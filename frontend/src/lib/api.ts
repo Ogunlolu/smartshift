@@ -200,6 +200,123 @@ class APIClient {
   async getLocations() {
     return this.request<{ locations: any[] }>('/dashboard/locations');
   }
+
+  // ============================================
+  // SCHEDULE ENDPOINTS
+  // ============================================
+
+  async getShiftTemplates(locationId: string) {
+    return this.request<any[]>(`/schedule/shift-templates?locationId=${locationId}`);
+  }
+
+  async createShiftTemplate(data: {
+    locationId: string;
+    name: string;
+    startTime: string;
+    endTime: string;
+    color?: string;
+    requiredStaff?: number;
+  }) {
+    return this.request<any>('/schedule/shift-templates', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateShiftTemplate(id: string, data: any) {
+    return this.request<any>(`/schedule/shift-templates/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteShiftTemplate(id: string) {
+    return this.request<any>(`/schedule/shift-templates/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getScheduleAssignments(locationId: string, startDate: string, endDate: string) {
+    return this.request<{
+      assignments: any[];
+      shiftTemplates: any[];
+      staffList: any[];
+      weekStart: string;
+      weekEnd: string;
+    }>(`/schedule/assignments?locationId=${locationId}&startDate=${startDate}&endDate=${endDate}`);
+  }
+
+  async createAssignment(data: {
+    locationId: string;
+    shiftTemplateId: string;
+    staffId: string;
+    date: string;
+    notes?: string;
+  }) {
+    return this.request<any>('/schedule/assignments', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateAssignment(id: string, data: { status?: string; notes?: string }) {
+    return this.request<any>(`/schedule/assignments/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteAssignment(id: string) {
+    return this.request<any>(`/schedule/assignments/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async bulkApplyTemplate(data: {
+    locationId: string;
+    startDate: string;
+    endDate: string;
+    overwriteExisting?: boolean;
+  }) {
+    return this.request<{ created: number; skipped: number }>('/schedule/assignments/bulk', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getWeeklyDefaults(locationId: string) {
+    return this.request<any[]>(`/schedule/weekly-defaults?locationId=${locationId}`);
+  }
+
+  async createWeeklyDefault(data: {
+    locationId: string;
+    shiftTemplateId: string;
+    staffId: string;
+    dayOfWeek: number;
+  }) {
+    return this.request<any>('/schedule/weekly-defaults', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteWeeklyDefault(id: string) {
+    return this.request<any>(`/schedule/weekly-defaults/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getMyShifts(params?: { startDate?: string; endDate?: string; past?: boolean }) {
+    const searchParams = new URLSearchParams();
+    if (params?.startDate) searchParams.append('startDate', params.startDate);
+    if (params?.endDate) searchParams.append('endDate', params.endDate);
+    if (params?.past) searchParams.append('past', 'true');
+    return this.request<{ shifts: any[] }>(`/schedule/my-shifts?${searchParams}`);
+  }
+
+  async getScheduleStats(locationId: string, startDate: string, endDate: string) {
+    return this.request<any>(`/schedule/stats?locationId=${locationId}&startDate=${startDate}&endDate=${endDate}`);
+  }
 }
 
 export const api = new APIClient();

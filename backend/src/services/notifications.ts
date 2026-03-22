@@ -1,7 +1,7 @@
 import twilio from 'twilio';
 import nodemailer from 'nodemailer';
-import { prisma } from '../index';
-import { io } from '../index';
+import { prisma } from '../lib/prisma';
+import { getIo } from '../lib/socket';
 
 // Initialize Twilio
 const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN
@@ -70,7 +70,7 @@ export class NotificationService {
         });
         
         // Emit real-time update
-        io.to(`org-${recipient.organizationId}`).emit('notification-sent', {
+        getIo().to(`org-${recipient.organizationId}`).emit('notification-sent', {
           notificationId: notification.id,
           recipientId,
           sickCallId,
@@ -95,7 +95,7 @@ export class NotificationService {
         });
         
         // Emit real-time update
-        io.to(`org-${recipient.organizationId}`).emit('notification-sent', {
+        getIo().to(`org-${recipient.organizationId}`).emit('notification-sent', {
           notificationId: notification.id,
           recipientId,
           sickCallId,

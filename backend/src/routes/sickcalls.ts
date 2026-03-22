@@ -1,6 +1,6 @@
 import express from 'express';
-import { prisma } from '../index';
-import { io } from '../index';
+import { prisma } from '../lib/prisma';
+import { getIo } from '../lib/socket';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { MatchingEngine } from '../services/matching';
 import { NotificationService } from '../services/notifications';
@@ -81,7 +81,7 @@ router.post('/submit', async (req: AuthRequest, res) => {
     });
     
     // Emit real-time update to managers
-    io.to(`org-${organizationId}`).emit('sick-call-submitted', {
+    getIo().to(`org-${organizationId}`).emit('sick-call-submitted', {
       sickCall,
     });
     
@@ -147,7 +147,7 @@ async function startShiftCoverageProcess(sickCallId: string) {
       data: { status: 'UNFILLED' },
     });
     
-    io.to(`org-${sickCall.organizationId}`).emit('sick-call-unfilled', {
+    getIo().to(`org-${sickCall.organizationId}`).emit('sick-call-unfilled', {
       sickCallId,
     });
     
@@ -169,7 +169,7 @@ async function startShiftCoverageProcess(sickCallId: string) {
   );
   
   // Emit real-time update with candidates
-  io.to(`org-${sickCall.organizationId}`).emit('candidates-found', {
+  getIo().to(`org-${sickCall.organizationId}`).emit('candidates-found', {
     sickCallId,
     candidates,
   });
@@ -225,7 +225,7 @@ router.post('/:id/respond', async (req: AuthRequest, res) => {
     }
     
     // Emit real-time update
-    io.to(`org-${sickCall.organizationId}`).emit('shift-response', {
+    getIo().to(`org-${sickCall.organizationId}`).emit('shift-response', {
       sickCallId,
       response,
     });
@@ -322,7 +322,7 @@ async function assignShift(
   }
   
   // Emit real-time update
-  io.to(`org-${sickCall.organizationId}`).emit('shift-covered', {
+  getIo().to(`org-${sickCall.organizationId}`).emit('shift-covered', {
     sickCallId,
     staffId,
     shift: sickCall.shift,

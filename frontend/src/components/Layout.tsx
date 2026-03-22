@@ -1,4 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
+import { Link, useLocation } from 'react-router-dom';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -6,6 +7,8 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth();
+  const location = useLocation();
+  const isManagerOrAdmin = user?.role === 'MANAGER' || user?.role === 'ADMIN';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50">
@@ -23,6 +26,30 @@ export default function Layout({ children }: LayoutProps) {
                 <p className="text-xs text-gray-500">Shift Coverage</p>
               </div>
             </div>
+
+            {/* Navigation */}
+            {isManagerOrAdmin && (
+              <nav className="flex items-center gap-1">
+                <Link
+                  to="/"
+                  className={`px-3 py-2 rounded-lg text-sm font-medium ${location.pathname === '/' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  to="/schedule"
+                  className={`px-3 py-2 rounded-lg text-sm font-medium ${location.pathname === '/schedule' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
+                >
+                  Schedule
+                </Link>
+                <Link
+                  to="/settings/shifts"
+                  className={`px-3 py-2 rounded-lg text-sm font-medium ${location.pathname === '/settings/shifts' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
+                >
+                  Settings
+                </Link>
+              </nav>
+            )}
 
             {/* User Info & Actions */}
             <div className="flex items-center gap-4">
